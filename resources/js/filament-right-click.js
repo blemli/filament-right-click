@@ -444,10 +444,49 @@
             return true;
         }
 
+        return rowActionElement(context.target, action) !== null;
+    }
+
+    // The row's rendered element for a table action (Filament keys it
+    // `…actions.<name>.…`), or null when the row does not render it.
+    function rowActionElement(row, action) {
+        if (! row || ! action) {
+            return null;
+        }
+
         const needle = `.actions.${action}.`;
 
-        return Array.from(context.target.querySelectorAll('[wire\\:key]'))
-            .some(element => (element.getAttribute('wire:key') || '').includes(needle));
+        return Array.from(row.querySelectorAll('[wire\\:key]'))
+            .find(element => (element.getAttribute('wire:key') || '').includes(needle)) || null;
+    }
+
+    // A row action with a URL renders as a link; its menu twin must follow
+    // that link instead of mounting the action (mounting an EditAction
+    // builds a modal form around the resource, a URL-only action does
+    // nothing). The row element is the source of truth per record.
+    function rowActionLink(row, action) {
+        const element = rowActionElement(row, action);
+
+        if (! element) {
+            return null;
+        }
+
+        if (element.matches('a[href]')) {
+            return element;
+        }
+
+        return element.querySelector('a[href]');
+    }
+
+    function followLink(link, openInNewTab) {
+        if (openInNewTab || link.target === '_blank') {
+            window.open(link.href, '_blank', 'noopener');
+
+            return;
+        }
+
+        // A real click on the anchor keeps wire:navigate and modifiers' semantics.
+        link.click();
     }
 
     function pruneSeparators(items) {
@@ -888,12 +927,22 @@
     }
 
     function triggerItem(item) {
-        const { contextType, surface, recordKey } = state;
+        const { contextType, surface, recordKey, target } = state;
 
         closeMenu();
 
         if (! surface || ! recordKey || ! item.action) {
             return;
+        }
+
+        if (contextType === 'table' && item.target !== 'bulk') {
+            const link = rowActionLink(target, item.mirrors || item.action);
+
+            if (link) {
+                followLink(link, item.openUrlInNewTab === true);
+
+                return;
+            }
         }
 
         const wire = getWire(surface);

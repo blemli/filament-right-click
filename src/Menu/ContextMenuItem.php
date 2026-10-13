@@ -129,6 +129,8 @@ class ContextMenuItem implements ContextMenuEntry
             'icon' => $this->getIconHtml(),
             'color' => $this->getColor(),
             'mirrors' => $this->mirrors,
+            // A URL action's twin follows the row's link; this says in which tab.
+            'openUrlInNewTab' => $this->action->shouldOpenUrlInNewTab() ?: null,
         ], fn (mixed $value): bool => $value !== null);
     }
 
