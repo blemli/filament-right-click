@@ -186,8 +186,23 @@ class ContextMenuItem implements ContextMenuEntry
             return $this->icon;
         }
 
+        // Filament's prebuilt actions (view, edit, delete, restore, replicate …)
+        // set no icon() — only groupedIcon() and tableIcon(), which Filament
+        // hands to getIcon() as the default when it renders them. A menu entry
+        // is a grouped entry, so the grouped icon comes first, the table icon
+        // next.
         try {
-            return $this->action->getIcon();
+            $default = null;
+
+            if (method_exists($this->action, 'getGroupedIcon')) {
+                $default = $this->action->getGroupedIcon();
+            }
+
+            if (blank($default) && method_exists($this->action, 'getTableIcon')) {
+                $default = $this->action->getTableIcon();
+            }
+
+            return $this->action->getIcon($default);
         } catch (Throwable) {
             return null;
         }
